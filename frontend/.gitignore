@@ -1,0 +1,22 @@
+# Arquivos de Ambiente (Segredos e Chaves)
+.env
+.env.*
+!.env.example
+
+# Dependências (Extremamente pesadas)
+node_modules/
+
+# Builds / Compilação
+dist/
+build/
+.vite/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Configurações do Sistema e IDE
+.DS_Store
+.vscode/
+.idea/
+Thumbs.db
