@@ -20,3 +20,7 @@ npm-debug.log*
 .vscode/
 .idea/
 Thumbs.db
+
+# Coisas minhas
+
+ROTAS_SEGURAS_PARA_APP.txt
