@@ -40,11 +40,11 @@ Crie um projeto no LiveKit Cloud e obtenha:
 
 
 
-\* `LIVEKIT\_URL`
+\* `LIVEKIT\\\\\\\_URL`
 
-\* `LIVEKIT\_API\_KEY`
+\* `LIVEKIT\\\\\\\_API\\\\\\\_KEY`
 
-\* `LIVEKIT\_API\_SECRET`
+\* `LIVEKIT\\\\\\\_API\\\\\\\_SECRET`
 
 
 
@@ -70,17 +70,17 @@ PORT=3000
 
 
 
-LIVEKIT\_URL=wss://<seu-projeto>.livekit.cloud
+LIVEKIT\\\\\\\_URL=wss://<seu-projeto>.livekit.cloud
 
-LIVEKIT\_API\_KEY=sua\_api\_key
+LIVEKIT\\\\\\\_API\\\\\\\_KEY=sua\\\\\\\_api\\\\\\\_key
 
-LIVEKIT\_API\_SECRET=sua\_api\_secret
+LIVEKIT\\\\\\\_API\\\\\\\_SECRET=sua\\\\\\\_api\\\\\\\_secret
 
 ```
 
 
 
-O backend utiliza essas credenciais para gerar os tokens de acesso ao LiveKit. A `LIVEKIT\_API\_SECRET` permanece somente no backend.
+O backend utiliza essas credenciais para gerar os tokens de acesso ao LiveKit. A `LIVEKIT\\\\\\\_API\\\\\\\_SECRET` permanece somente no backend.
 
 
 
@@ -110,7 +110,7 @@ configure inicialmente:
 
 ```env
 
-VITE\_API\_URL=http://localhost:3000
+VITE\\\\\\\_API\\\\\\\_URL=http://localhost:3000
 
 ```
 
@@ -192,13 +192,13 @@ Para permitir acesso de outros computadores da rede, configure o `vite.config.ts
 
 export default defineConfig({
 
-&#x20; server: {
+\\\&#x20; server: {
 
-&#x20;   host: '0.0.0.0',
+\\\&#x20;   host: '0.0.0.0',
 
-&#x20;   port: 5173
+\\\&#x20;   port: 5173
 
-&#x20; }
+\\\&#x20; }
 
 })
 
@@ -240,7 +240,7 @@ para:
 
 ```env
 
-VITE\_API\_URL=http://localhost:3000
+VITE\\\\\\\_API\\\\\\\_URL=http://localhost:3000
 
 ```
 
@@ -254,13 +254,50 @@ Substitua `localhost` pelo IP local do computador que está executando o backend
 
 
 
-\# 6. Acesso pela Internet usando o IP público
+\# 6. Acesso Seguro pela Internet (HTTPS via Cloudflare Tunnel) - Recomendado
+
+
+
+Para evitar problemas de segurança com permissões de tela no navegador (que exigem HTTPS) e expor sua aplicação sem configurar o roteador, utilize o Cloudflare Tunnel.
+
+
+
+Passo 1: Execute o comando para abrir uma rota segura para o backend:
+
+
+
+npx cloudflared tunnel --url http://localhost:3000
+
+
+
+Passo 2: Insira o LINK HTTPS gerado (ex: https://nome-aleatorio.trycloudflare.com) no .env do Frontend:
+
+
+
+VITE\_API\_URL=https://SEU\_LINK\_HTTPS\_DO\_BACKEND
+
+
+
+Passo 3: Execute o comando para abrir uma rota segura para o frontend:
+
+
+
+npx cloudflared tunnel --url http://localhost:5173
+
+
+
+Pronto! O sistema estará rodando no LINK HTTPS gerado para o Frontend. Acesse este link de qualquer dispositivo na internet e os recursos de compartilhamento de tela funcionarão nativamente, sem bloqueios.
+
+
+
+\# 7. Acesso pela Internet usando o IP público (Port Forwarding)
 
 
 
 Para permitir que pessoas fora da sua rede acessem o aplicativo, é possível utilizar diretamente o \*\*IP público do roteador\*\*.
 
 Primeiro, o computador que executa o projeto deve possuir um IP local fixo, por exemplo:
+
 
 
 Descubra o IP local do computador:
@@ -319,7 +356,7 @@ Também pode ser necessário liberar essas portas no Firewall do Windows.
 
 
 
-\# 7. Configurar o endereço público do Backend
+\# 8. Configurar o endereço público do Backend (Se usar Port Forwarding)
 
 
 
@@ -345,7 +382,7 @@ configure:
 
 ```env
 
-VITE\_API\_URL=http://200.100.50.25:3000
+VITE\\\\\\\_API\\\\\\\_URL=http://200.100.50.25:3000
 
 ```
 
@@ -387,7 +424,7 @@ que será encaminhado pelo roteador para o computador que está executando o bac
 
 
 
-\# 8. Por que o Chrome pode exigir o `chrome://flags/#unsafely-treat-insecure-origin-as-secure`?
+\# 9. Por que o Chrome pode exigir o `chrome://flags/#unsafely-treat-insecure-origin-as-secure`?
 
 
 
@@ -477,7 +514,7 @@ Essa configuração é apenas uma alternativa para \*\*testes utilizando HTTP\*\
 
 
 
-\# 9. Resumo da configuração
+\# 10. Resumo da configuração
 
 
 
@@ -507,7 +544,7 @@ Frontend:
 
 ```env
 
-VITE\_API\_URL=http://localhost:3000
+VITE\\\\\\\_API\\\\\\\_URL=http://localhost:3000
 
 ```
 
@@ -547,7 +584,7 @@ Frontend:
 
 ```env
 
-VITE\_API\_URL=http://localhost:3000
+VITE\\\\\\\_API\\\\\\\_URL=http://localhost:3000
 
 ```
 
@@ -557,7 +594,37 @@ VITE\_API\_URL=http://localhost:3000
 
 
 
-\## Internet
+\## Internet (Cloudflare Tunnel - HTTPS Seguro)
+
+
+
+Para gerar uma URL com protocolo HTTPS utilize o comando para o backend:
+
+
+
+npx cloudflared tunnel --url http://localhost:3000
+
+
+
+
+
+Cole o link gerado no .env do frontend:
+
+VITE\_API\_URL=https://LINK\_HTTPS\_DO\_BACKEND
+
+Para gerar uma URL com protocolo HTTPS utilize o comando para o frontend:
+
+
+
+npx cloudflared tunnel --url http://localhost:5173
+
+
+
+Acesse o aplicativo através do LINK HTTPS gerado para o Frontend.
+
+
+
+\## Internet (IP Público via HTTP)
 
 
 
@@ -567,9 +634,9 @@ Configure no roteador:
 
 ```text
 
-TCP 5173 → IP\_LOCAL\_DO\_PC:5173
+TCP 5173 → IP\\\\\\\_LOCAL\\\\\\\_DO\\\\\\\_PC:5173
 
-TCP 3000 → IP\_LOCAL\_DO\_PC:3000
+TCP 3000 → IP\\\\\\\_LOCAL\\\\\\\_DO\\\\\\\_PC:3000
 
 ```
 
@@ -581,7 +648,7 @@ Frontend:
 
 ```env
 
-VITE\_API\_URL=http://SEU\_IP\_PUBLICO:3000
+VITE\\\\\\\_API\\\\\\\_URL=http://SEU\\\\\\\_IP\\\\\\\_PUBLICO:3000
 
 ```
 
@@ -593,13 +660,13 @@ Acesso:
 
 ```text
 
-http://SEU\_IP\_PUBLICO:5173
+http://SEU\\\\\\\_IP\\\\\\\_PUBLICO:5173
 
 ```
 
 
 
-Para testes utilizando HTTP, o Chrome pode exigir:
+Para testes utilizando protocolo HTTP, o Chrome pode exigir:
 
 
 
@@ -608,14 +675,4 @@ Para testes utilizando HTTP, o Chrome pode exigir:
 chrome://flags/#unsafely-treat-insecure-origin-as-secure
 
 ```
-
-
-
-Adicione a origem utilizada pelo aplicativo.
-
-
-
-Para produção, utilize \*\*HTTPS\*\*.
-
-
 

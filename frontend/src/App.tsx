@@ -111,6 +111,16 @@ function RoomPage({roomCode,participantId,role,onLeave}:{roomCode:string,partici
   const [tracks,setTracks] = useState<Map<string,HTMLVideoElement>>(new Map());
   const [sharing,setSharing] = useState(false);
 
+  // NOVO: Estado para saber se o dispositivo/navegador suporta a API
+  const [isScreenShareSupported, setIsScreenShareSupported] = useState(true);
+
+  // NOVO: Verifica se o navegador suporta compartilhamento logo que a sala abre
+  useEffect(() => {
+    if (!navigator.mediaDevices || !('getDisplayMedia' in navigator.mediaDevices)) {
+      setIsScreenShareSupported(false);
+    }
+  }, []);
+
   // Gerenciamento da conexão WebSocket
   useEffect(()=>{
     const ws = new WebSocket(`${API.replace(/^http/,'ws')}/ws?roomId=${roomCode}&participantId=${participantId}`);
@@ -211,6 +221,9 @@ function RoomPage({roomCode,participantId,role,onLeave}:{roomCode:string,partici
       }
     } catch (e) {
       console.error('Erro ao alternar compartilhamento:', e);
+      // NOVO: Feedback para o usuário caso ele negue a permissão no celular ou PC
+      alert('Não foi possível compartilhar a tela. Verifique as permissões ou tente novamente.');
+      setSharing(false); // Garante que o botão não fique preso como "compartilhando"
     }
   }
 
@@ -240,7 +253,15 @@ function RoomPage({roomCode,participantId,role,onLeave}:{roomCode:string,partici
         <div className="screen-grid">{activeTracks.length===0?<div className="empty"><div className="empty-icon">▣</div><h2>Nenhuma transmissão ativa</h2><p>Compartilhe sua tela para começar.</p></div>:
           activeTracks.map(([key,el])=><div className="screen-card" key={key}><div ref={n=>{if(n&&el.parentElement!==n)n.appendChild(el)}} className="video-slot"><span className="live-badge">AO VIVO</span></div></div>)}
         </div>
-        <div className="toolbar"><button className={sharing?'danger':'primary'} onClick={toggleShare}>{sharing?'Parar compartilhamento':'+ Compartilhar minha tela'}</button></div>
+        <div className="toolbar"><button 
+            className={!isScreenShareSupported ? 'secondary' : (sharing ? 'danger' : 'primary')} 
+            onClick={toggleShare}
+            disabled={!isScreenShareSupported} // Desabilita se não suportar
+          >
+            {!isScreenShareSupported 
+              ? 'Navegador incompatível' 
+              : (sharing ? 'Parar compartilhamento' : '+ Compartilhar minha tela')}
+          </button></div>
       </section>
     </div>
   </main>
