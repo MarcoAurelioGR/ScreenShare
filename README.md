@@ -1,4 +1,4 @@
-\# Screen Share — React + Node.js + LiveKit Cloud
+# Screen Share — React + Node.js + LiveKit Cloud
 
 
 
@@ -10,29 +10,29 @@ O frontend utiliza a biblioteca `livekit-client` para conexão com o LiveKit e c
 
 
 
-\---
+---
 
 
 
-\## Requisitos
+## Requisitos
 
 
 
-\* Node.js 20+
+* Node.js 20+
 
-\* npm
+* npm
 
-\* Conta no \[LiveKit Cloud](https://cloud.livekit.io/)
+* Conta no \[LiveKit Cloud](https://cloud.livekit.io/)
 
-\* Roteador com possibilidade de configurar encaminhamento de portas para acesso externo
-
-
-
-\---
+* Roteador com possibilidade de configurar encaminhamento de portas para acesso externo
 
 
 
-\# 1. Configurar o LiveKit
+---
+
+
+
+# 1. Configurar o LiveKit
 
 
 
@@ -40,11 +40,11 @@ Crie um projeto no LiveKit Cloud e obtenha:
 
 
 
-\* `LIVEKIT\\\\\\\_URL`
+* `LIVEKIT\\\\\\\_URL`
 
-\* `LIVEKIT\\\\\\\_API\\\\\\\_KEY`
+* `LIVEKIT\\\\\\\_API\\\\\\\_KEY`
 
-\* `LIVEKIT\\\\\\\_API\\\\\\\_SECRET`
+* `LIVEKIT\\\\\\\_API\\\\\\\_SECRET`
 
 
 
@@ -84,11 +84,11 @@ O backend utiliza essas credenciais para gerar os tokens de acesso ao LiveKit. A
 
 
 
-\---
+---
 
 
 
-\# 2. Configurar o Frontend
+# 2. Configurar o Frontend
 
 
 
@@ -120,11 +120,11 @@ Essa variável define o endereço do backend utilizado pelo frontend.
 
 
 
-\---
+---
 
 
 
-\# 3. Executar o Backend
+# 3. Executar o Backend
 
 
 
@@ -148,11 +148,11 @@ O backend utiliza a porta `3000` por padrão e aceita conexões em todas as inte
 
 
 
-\---
+---
 
 
 
-\# 4. Executar o Frontend
+# 4. Executar o Frontend
 
 
 
@@ -206,11 +206,11 @@ export default defineConfig({
 
 
 
-\---
+---
 
 
 
-\# 5. Acesso pela rede local
+# 5. Acesso pela rede local
 
 
 
@@ -250,11 +250,11 @@ Substitua `localhost` pelo IP local do computador que está executando o backend
 
 
 
-\---
+---
 
 
 
-\# 6. Acesso Seguro pela Internet (HTTPS via Cloudflare Tunnel) - Recomendado
+# 6. Acesso Seguro pela Internet (HTTPS via Cloudflare Tunnel) - Recomendado
 
 
 
@@ -290,7 +290,7 @@ Pronto! O sistema estará rodando no LINK HTTPS gerado para o Frontend. Acesse e
 
 
 
-\# 7. Acesso pela Internet usando o IP público (Port Forwarding)
+# 7. Acesso pela Internet usando o IP público (Port Forwarding)
 
 
 
@@ -324,7 +324,7 @@ Depois configure o \*\*Port Forwarding\*\* do roteador.
 
 
 
-\### Porta do Frontend
+### Porta do Frontend
 
 
 
@@ -336,7 +336,7 @@ TCP 5173 → 192.168.1.100:5173
 
 
 
-\### Porta do Backend
+### Porta do Backend
 
 
 
@@ -352,11 +352,11 @@ Também pode ser necessário liberar essas portas no Firewall do Windows.
 
 
 
-\---
+---
 
 
 
-\# 8. Configurar o endereço público do Backend (Se usar Port Forwarding)
+# 8. Configurar o endereço público do Backend (Se usar Port Forwarding)
 
 
 
@@ -420,11 +420,11 @@ que será encaminhado pelo roteador para o computador que está executando o bac
 
 
 
-\---
+---
 
 
 
-\# 9. Por que o Chrome pode exigir o `chrome://flags/#unsafely-treat-insecure-origin-as-secure`?
+# 9. Por que o Chrome pode exigir o `chrome://flags/#unsafely-treat-insecure-origin-as-secure`?
 
 
 
@@ -504,7 +504,7 @@ Depois reinicie o Chrome.
 
 
 
-\### Importante
+### Importante
 
 
 
@@ -514,11 +514,11 @@ Essa configuração é apenas uma alternativa para \*\*testes utilizando HTTP\*\
 
 
 
-\# 10. Resumo da configuração
+# 10. Resumo da configuração
 
 
 
-\## Local
+## Local
 
 
 
@@ -550,11 +550,11 @@ VITE\\\\\\\_API\\\\\\\_URL=http://localhost:3000
 
 
 
-\---
+---
 
 
 
-\## Rede local
+## Rede local
 
 
 
@@ -594,7 +594,7 @@ VITE\\\\\\\_API\\\\\\\_URL=http://localhost:3000
 
 
 
-\## Internet (Cloudflare Tunnel - HTTPS Seguro)
+## Internet (Cloudflare Tunnel - HTTPS Seguro)
 
 
 
@@ -624,7 +624,7 @@ Acesse o aplicativo através do LINK HTTPS gerado para o Frontend.
 
 
 
-\## Internet (IP Público via HTTP)
+## Internet (IP Público via HTTP)
 
 
 
