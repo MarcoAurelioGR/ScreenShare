@@ -55,11 +55,22 @@ function publicParticipant(p: Participant) {
 function publicRoom(room: RoomState) {
   return {
     id: room.id,
-    hostId: room.hostId,
+    // hostId removido de propósito: é a credencial do anfitrião
     participants: [...room.participants.values()].map(publicParticipant)
   };
 }
 
+// Lista de salas abertas
+app.get('/api/rooms', async () =>
+  [...rooms.values()]
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .map(r => ({
+      id: r.id,
+      hostName: r.participants.get(r.hostId)?.name ?? '',
+      participantCount: [...r.participants.values()].filter(p => p.status === 'APPROVED').length,
+      createdAt: r.createdAt
+    }))
+);
 function broadcast(room: RoomState, payload: unknown) {
   const data = JSON.stringify(payload);
   for (const p of room.participants.values()) {
@@ -105,10 +116,19 @@ app.get('/api/rooms/:roomId', async (req, reply) => {
 
 app.post('/api/rooms/:roomId/join', async (req, reply) => {
   const { roomId } = req.params as { roomId: string };
-  const body = req.body as { name?: string };
+  const body = req.body as { name?: string; hostKey?: string };
   const room = getRoom(roomId);
-  const name = String(body?.name ?? '').trim().slice(0, 40);
 
+  if (!room) return reply.code(404).send({ error: 'Sala inexistente' });
+
+  // Criador entra direto, sem aprovação
+  if (body?.hostKey && body.hostKey === room.hostId) {
+    return { roomId: room.id, participantId: room.hostId, role: 'HOST', status: 'APPROVED' };
+  }
+
+  const name = String(body?.name ?? '').trim().slice(0, 40);
+  
+  if (!name) return reply.code(400).send({ error: 'Nome obrigatório' });
   if (!room) return reply.code(404).send({ error: 'Sala inexistente' });
   if (!name) return reply.code(400).send({ error: 'Nome obrigatório' });
 

@@ -3,8 +3,16 @@ import {
   Room, RoomEvent, Track, RemoteTrackPublication, RemoteParticipant,
   LocalParticipant, VideoPresets
 } from 'livekit-client';
+import { LocalVideoTrack, LocalAudioTrack } from 'livekit-client'; // junto ao import existente
 
 const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+const HOST_KEY = (id: string) => `screenshare:host:${id}`;
+
+function toggleFullscreen(card: HTMLElement, video: HTMLVideoElement) {
+  if (document.fullscreenElement) { document.exitFullscreen(); return; }
+  if (card.requestFullscreen) card.requestFullscreen();
+  else (video as any).webkitEnterFullscreen?.(); // iOS Safari
+}
 
 type P = { id: string; name: string; role: 'HOST'|'PARTICIPANT'; status: string; isSharing: boolean };
 type RoomState = { id: string; hostId: string; participants: P[] };
@@ -30,21 +38,37 @@ export function App() {
   const [error, setError] = useState('');
   const [pendingAction, setPendingAction] = useState<'create'|'join'|null>(null);
 
-  async function createRoom() {
-    setError('');
-    const n = prompt('Nome do anfitrião:')?.trim();
-    if (!n) return;
-    try {
-      const data = await api('/api/rooms', { method: 'POST', body: JSON.stringify({ name: n }) });
-      setRoomCode(data.roomId); setParticipantId(data.participantId); setRole('HOST'); setName(n);
-      setPage('room');
-    } catch (e) { setError((e as Error).message); }
-  }
+async function createRoom() {
+  setError('');
+  const n = prompt('Nome do anfitrião:')?.trim();
+  if (!n) return;
+  try {
+    const data = await api('/api/rooms', { method: 'POST', body: JSON.stringify({ name: n }) });
+    localStorage.setItem(HOST_KEY(data.roomId), data.participantId); // chave do criador
+    setRoomCode(data.roomId); setParticipantId(data.participantId); setRole('HOST'); setName(n);
+    setPage('room');
+  } catch (e) { setError((e as Error).message); }
+}
 
-  function startJoin() {
-    if (!roomCode.trim()) return setError('Informe o código da sala.');
-    setError(''); setPendingAction('join'); setPage('name');
+async function enterAsHost(code: string, hostKey: string) {
+  try {
+    const data = await api(`/api/rooms/${code}/join`, { method: 'POST', body: JSON.stringify({ hostKey }) });
+    setRoomCode(code); setParticipantId(data.participantId); setRole('HOST');
+    setPage('room');
+  } catch (e) {
+    localStorage.removeItem(HOST_KEY(code)); // sala não existe mais
+    setError((e as Error).message);
   }
+}
+
+function startJoin(code: string = roomCode) {
+  const c = code.trim().toUpperCase();
+  if (!c) return setError('Informe o código da sala.');
+  setError(''); setRoomCode(c);
+  const hostKey = localStorage.getItem(HOST_KEY(c));
+  if (hostKey) { enterAsHost(c, hostKey); return; }
+  setPendingAction('join'); setPage('name');
+}
 
   async function join() {
     try {
@@ -58,13 +82,32 @@ export function App() {
     } catch (e) { setError((e as Error).message); }
   }
 
-  if (page === 'home') return <Home code={roomCode} setCode={setRoomCode} onJoin={startJoin} onCreate={createRoom} error={error} />;
+  if (page === 'home') return <Home code={roomCode} setCode={setRoomCode}
+  onJoin={() => startJoin()} onEnter={startJoin} onCreate={createRoom} error={error} />;
   if (page === 'name') return <NamePage name={name} setName={setName} onBack={() => setPage('home')} onContinue={join} error={error} />;
   if (page === 'waiting') return <Waiting roomCode={roomCode} participantId={participantId} onApproved={() => setPage('room')} onBack={() => setPage('home')} />;
   return <RoomPage roomCode={roomCode} participantId={participantId} role={role} initial={roomState} onLeave={() => { setPage('home'); location.reload(); }} />;
 }
 
-function Home({code,setCode,onJoin,onCreate,error}:{code:string,setCode:(s:string)=>void,onJoin:()=>void,onCreate:()=>void,error:string}) {
+type RoomItem = { id: string; hostName: string; participantCount: number; createdAt: number };
+
+function Home({code,setCode,onJoin,onEnter,onCreate,error}:{code:string,setCode:(s:string)=>void,onJoin:()=>void,onEnter:(c:string)=>void,onCreate:()=>void,error:string}) {
+  const [rooms, setRooms] = useState<RoomItem[]>([]);
+  const [copied, setCopied] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    const load = () => api('/api/rooms').then(d => alive && setRooms(d)).catch(() => {});
+    load();
+    const t = setInterval(load, 5000);
+    return () => { alive = false; clearInterval(t); };
+  }, []);
+
+  function copy(id: string) {
+    navigator.clipboard.writeText(id);
+    setCopied(id); setTimeout(() => setCopied(''), 1500);
+  }
+
   return <main className="center"><section className="card hero">
     <div className="logo">SCREEN<span>SHARE</span></div>
     <p className="muted">Compartilhamento de tela em tempo real</p>
@@ -72,6 +115,22 @@ function Home({code,setCode,onJoin,onCreate,error}:{code:string,setCode:(s:strin
     <button className="primary" onClick={onJoin}>Entrar na sala</button>
     <button className="secondary" onClick={onCreate}>Criar sala</button>
     {error && <div className="error">{error}</div>}
+
+    <div className="room-list">
+      <h3>Salas abertas</h3>
+      {rooms.length === 0 && <p className="muted">Nenhuma sala aberta no momento.</p>}
+      {rooms.map(r => {
+        const mine = !!localStorage.getItem(HOST_KEY(r.id));
+        return <div className="room-item" key={r.id}>
+          <div><strong>{r.id}</strong> {mine && <span className="share-tag">SUA SALA</span>}
+            <div className="muted">Anfitrião: {r.hostName} · {r.participantCount} na sala</div></div>
+          <div>
+            <button className="secondary small" onClick={() => copy(r.id)}>{copied === r.id ? 'Copiado!' : 'Copiar código'}</button>
+            {mine && <button className="primary small" onClick={() => onEnter(r.id)}>Entrar</button>}
+          </div>
+        </div>;
+      })}
+    </div>
   </section></main>
 }
 
@@ -90,8 +149,9 @@ function Waiting({roomCode,participantId,onApproved,onBack}:{roomCode:string,par
     const ws = new WebSocket(`${API.replace(/^http/,'ws')}/ws?roomId=${roomCode}&participantId=${participantId}`);
     ws.onmessage = e => {
       const m = JSON.parse(e.data);
-      if (m.type === 'approved') onApproved();
-      if (m.type === 'rejected' || m.type === 'kicked' || m.type === 'room-closed') onBack();
+      if (m.type === 'approved' && m.participant?.id === participantId) onApproved();
+      if (m.type === 'rejected' && m.participantId === participantId) onBack();
+      if (m.type === 'kicked' || m.type === 'room-closed') onBack();
     };
     return ()=>ws.close();
   },[roomCode,participantId,onApproved,onBack]);
@@ -111,10 +171,11 @@ function RoomPage({roomCode,participantId,role,onLeave}:{roomCode:string,partici
   const [tracks,setTracks] = useState<Map<string,HTMLVideoElement>>(new Map());
   const [sharing,setSharing] = useState(false);
 
-  // NOVO: Estado para saber se o dispositivo/navegador suporta a API
+  const shareTracksRef = useRef<(LocalVideoTrack | LocalAudioTrack)[]>([]);
+  const [notice, setNotice] = useState('');
+
   const [isScreenShareSupported, setIsScreenShareSupported] = useState(true);
 
-  // NOVO: Verifica se o navegador suporta compartilhamento logo que a sala abre
   useEffect(() => {
     if (!navigator.mediaDevices || !('getDisplayMedia' in navigator.mediaDevices)) {
       setIsScreenShareSupported(false);
@@ -207,25 +268,75 @@ function RoomPage({roomCode,participantId,role,onLeave}:{roomCode:string,partici
     };
   },[roomCode,participantId]);
 
-  async function toggleShare() {
-    const r = roomRef.current; if (!r) return;
-    const next = !sharing;
-    
-    try {
-      await r.localParticipant.setScreenShareEnabled(next, { audio: true });
-      setSharing(next);
+  async function startShare() {
+  const r = roomRef.current; if (!r) return;
+  const supported = navigator.mediaDevices.getSupportedConstraints() as any;
 
-      // Notifica o backend via WebSocket sobre o novo estado de compartilhamento
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: 'sharing-state', isSharing: next }));
-      }
-    } catch (e) {
-      console.error('Erro ao alternar compartilhamento:', e);
-      // NOVO: Feedback para o usuário caso ele negue a permissão no celular ou PC
-      alert('Não foi possível compartilhar a tela. Verifique as permissões ou tente novamente.');
-      setSharing(false); // Garante que o botão não fique preso como "compartilhando"
-    }
+  const stream = await navigator.mediaDevices.getDisplayMedia({
+    video: { frameRate: 30, width: { max: 1920 }, height: { max: 1080 } },
+    audio: {
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+      ...(supported.windowAudio ? { windowAudio: 'window' } : {})
+    } as any
+  });
+
+  const [v] = stream.getVideoTracks();
+  const surface = v.getSettings().displaySurface; // 'monitor' | 'window' | 'browser'
+  let [a] = stream.getAudioTracks();
+
+  // Janela sem suporte a windowAudio: o áudio seria do sistema inteiro -> descarta
+  if (a && surface === 'window' && !supported.windowAudio) {
+    a.stop();
+    a = undefined as any;
+    setNotice('Ao compartilhar uma janela, o áudio foi desativado para evitar vazamento de outros apps. Para ter áudio, compartilhe uma aba ou a tela inteira.');
+  } else {
+    setNotice('');
   }
+
+  const lp = r.localParticipant;
+  const vt = new LocalVideoTrack(v);
+  await lp.publishTrack(vt, { source: Track.Source.ScreenShare, name: 'screen' });
+  shareTracksRef.current = [vt];
+
+  if (a) {
+    const at = new LocalAudioTrack(a);
+    await lp.publishTrack(at, { source: Track.Source.ScreenShareAudio, name: 'screen-audio' });
+    shareTracksRef.current.push(at);
+  }
+
+  // Botão "Parar compartilhamento" nativo do navegador
+  v.addEventListener('ended', () => { stopShare(); });
+
+  setSharing(true);
+  wsRef.current?.readyState === WebSocket.OPEN &&
+    wsRef.current.send(JSON.stringify({ type: 'sharing-state', isSharing: true }));
+}
+
+async function stopShare() {
+  const lp = roomRef.current?.localParticipant;
+  for (const t of shareTracksRef.current) {
+    try { await lp?.unpublishTrack(t, true); } catch {}
+    t.stop();
+  }
+  shareTracksRef.current = [];
+  setSharing(false);
+  wsRef.current?.readyState === WebSocket.OPEN &&
+    wsRef.current.send(JSON.stringify({ type: 'sharing-state', isSharing: false }));
+}
+
+async function toggleShare() {
+  try {
+    if (sharing) await stopShare(); else await startShare();
+  } catch (e) {
+    console.error('Erro ao alternar compartilhamento:', e);
+    if ((e as DOMException).name !== 'NotAllowedError') {
+      alert('Não foi possível compartilhar a tela. Verifique as permissões ou tente novamente.');
+    }
+    setSharing(false);
+  }
+}
 
   async function moderate(targetId:string,action:'approve'|'reject'|'kick'|'stop-share'|'close-room') {
     await api(`/api/rooms/${roomCode}/moderate`,{method:'POST',body:JSON.stringify({hostId:participantId,participantId:targetId,action})});
@@ -250,10 +361,20 @@ function RoomPage({roomCode,participantId,role,onLeave}:{roomCode:string,partici
         {role==='HOST'&&<button className="danger full" onClick={()=>moderate(participantId,'close-room')}>Encerrar sala</button>}
       </aside>
       <section className="content">
-        <div className="screen-grid">{activeTracks.length===0?<div className="empty"><div className="empty-icon">▣</div><h2>Nenhuma transmissão ativa</h2><p>Compartilhe sua tela para começar.</p></div>:
-          activeTracks.map(([key,el])=><div className="screen-card" key={key}><div ref={n=>{if(n&&el.parentElement!==n)n.appendChild(el)}} className="video-slot"><span className="live-badge">AO VIVO</span></div></div>)}
+        <div className="screen-grid">{activeTracks.length===0
+  ? <div className="empty"><div className="empty-icon">▣</div><h2>Nenhuma transmissão ativa</h2><p>Compartilhe sua tela para começar.</p></div>
+  : activeTracks.map(([key, el]) => (
+      <div className="screen-card" key={key}>
+        <div ref={n => { if (n && el.parentElement !== n) n.appendChild(el) }} className="video-slot">
+          <span className="live-badge">AO VIVO</span>
         </div>
-        <div className="toolbar"><button 
+        <button className="fs-btn" onClick={e => toggleFullscreen(e.currentTarget.closest('.screen-card') as HTMLElement, el)}>
+          ⛶ Tela cheia
+        </button>
+      </div>
+    ))
+}</div>
+        <div className="toolbar">{notice && <span className="muted">{notice}</span>}<button 
             className={!isScreenShareSupported ? 'secondary' : (sharing ? 'danger' : 'primary')} 
             onClick={toggleShare}
             disabled={!isScreenShareSupported} // Desabilita se não suportar
